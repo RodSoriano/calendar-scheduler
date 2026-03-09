@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: ${POSTGRES_CONTAINER_NAME}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: ${API_CONTAINER_NAME}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      NODE_ENV: development
+      PORT: ${API_PORT}
+    ports:
+      - "${API_PORT}:${API_PORT}"
+    volumes:
+      - ./api:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: ${WEB_CONTAINER_NAME}
+    restart: unless-stopped
+    environment:
+      # Used in browser-side fetches
+      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT}
+      # Used in Next.js server-side code (stays inside Docker network)
+      API_INTERNAL_URL: http://api:${API_PORT}
+      NODE_ENV: development
+      PORT: ${WEB_PORT}
+    ports:
+      - "${WEB_PORT}:${WEB_PORT}"
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - api
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
