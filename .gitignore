@@ -3,7 +3,7 @@ node_modules/
 
 # Build Outputs
 .next/            # Next.js build output
-dist/             # NestJS compiled TypeScript output
+api/dist/        # NestJS compiled TypeScript output
 build/
 out/
 
