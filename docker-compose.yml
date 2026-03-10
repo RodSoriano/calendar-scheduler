@@ -25,10 +25,10 @@ services:
       dockerfile: Dockerfile
     container_name: ${API_CONTAINER_NAME}
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: ${DATABASE_URL}
       NODE_ENV: development
-      PORT: ${API_PORT}
     ports:
       - "${API_PORT}:${API_PORT}"
     volumes:
