@@ -5,10 +5,87 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  googleId  String   @unique
+
+  // Google OAuth tokens (one-to-one)
+  googleToken   GoogleToken?
+
+  // App JWT refresh tokens (one-to-many: user can have sessions on multiple devices)
+  refreshTokens RefreshToken[]
+
+  // Events created in or synced from Google Calendar or the app (one-to-many)
+  events        Event[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Google OAuth2 tokens
+model GoogleToken {
+  id           Int      @id @default(autoincrement())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accessToken  String
+  refreshToken String?
+  expiryDate   BigInt?
+  tokenType    String?
+  scope        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// App JWT refresh tokens — supports multi-device, rotation, and revocation
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash String   @unique  // bcrypt hash to not store raw token
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  // Track device/session for revocation UX
+  userAgent String?
+  ipAddress String?
+
+  createdAt DateTime @default(now())
+}
+
+// All calendar events — both app created and Google synced
+model Event {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String?
+  location      String?
+  startTime     DateTime
+  endTime       DateTime
+  timeZone      String      @default("UTC")
+  source        EventSource @default(APP)
+  googleEventId String?     // set when source = GOOGLE
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, startTime])
+  @@index([googleEventId])
+}
+
+enum EventSource {
+  APP
+  GOOGLE
 }
