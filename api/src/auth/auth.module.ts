@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller';
 import { TokenModule } from '../token/token.module';
 import { UsersModule } from '../users/users.module';
 import { GoogleModule } from '../google/google.module';
+import { CalendarModule } from '../calendar/calendar.module';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
@@ -19,6 +20,7 @@ import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
     GoogleModule,
     TokenModule,
     UsersModule,
+    CalendarModule,
   ],
   controllers: [AuthController],
   providers: [

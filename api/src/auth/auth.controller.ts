@@ -7,6 +7,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { AuthService } from './auth.service';
@@ -16,12 +17,16 @@ import { JwtAccessGuard } from './guards/jwt-access.guard';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { AuthUser, RefreshUser } from './types/auth-user.interface';
+import { CalendarService } from '../calendar/calendar.service';
 
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly authService: AuthService,
     private readonly config: ConfigService,
+    private readonly calendarService: CalendarService,
   ) {}
 
   @Get('google')
@@ -33,10 +38,18 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
   async googleCallback(@Req() req: Request, @Res() res: Response) {
-    const { accessToken, refreshToken } = await this.authService.issueTokens(req.user as User, {
+    const user = req.user as User;
+    const { accessToken, refreshToken } = await this.authService.issueTokens(user, {
       userAgent: req.headers['user-agent'],
       ipAddress: req.ip,
     });
+
+    try {
+      const { count } = await this.calendarService.syncFromGoogle(user.id);
+      this.logger.log(`[Auth] Initial sync for userId=${user.id}: ${count} events synced`);
+    } catch (err) {
+      this.logger.error(`[Auth] Initial sync failed for userId=${user.id}`, err);
+    }
 
     const frontendUrl = this.config.getOrThrow<string>('FRONTEND_URL');
     return res.redirect(

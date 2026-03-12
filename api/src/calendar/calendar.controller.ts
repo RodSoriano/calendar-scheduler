@@ -13,7 +13,7 @@ export class CalendarController {
   @Get('events')
   listEvents(@Req() req: Request) {
     const { userId } = req.user as AuthUser;
-    return this.calendarService.listUpcomingEvents(userId);
+    return this.calendarService.listEventsFromDb(userId);
   }
 
   @Post('events')
@@ -21,5 +21,12 @@ export class CalendarController {
   createEvent(@Req() req: Request, @Body() dto: CreateEventDto) {
     const { userId } = req.user as AuthUser;
     return this.calendarService.createEvent(userId, dto);
+  }
+
+  @Post('sync')
+  @HttpCode(HttpStatus.OK)
+  syncEvents(@Req() req: Request) {
+    const { userId } = req.user as AuthUser;
+    return this.calendarService.syncFromGoogle(userId);
   }
 }

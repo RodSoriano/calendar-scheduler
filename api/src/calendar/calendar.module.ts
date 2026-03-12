@@ -7,6 +7,7 @@ import { CalendarController } from './calendar.controller';
   imports: [TokenModule],
   controllers: [CalendarController],
   providers: [CalendarService],
+  exports: [CalendarService],
 })
 
 export class CalendarModule {}
